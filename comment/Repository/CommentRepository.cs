@@ -49,9 +49,9 @@ namespace comment.Repository
             }
         }
 
-        public async Task<IQueryable<Comment>> GetAllCommentsAsync()
+        public async Task<List<Comment>> GetAllCommentsAsync()
         {
-            return await Task.FromResult(_context.Comments);
+            return await _context.Comments.ToListAsync();
         }
 
         public async Task<IQueryable<Comment>> GetAllCommentsByHomePageAsync(Guid homePageId)

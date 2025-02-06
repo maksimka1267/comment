@@ -7,7 +7,7 @@ namespace comment.Interface
         Task MakeCommentAsync(Comment comment);
         Task DeleteCommentAsync(Guid id);
         Task<Comment> GetCommentByIdAsync(Guid id);
-        Task<IQueryable<Comment>> GetAllCommentsAsync();
+        Task<List<Comment>> GetAllCommentsAsync();
         Task<IQueryable<Comment>> GetAllCommentsByHomePageAsync(Guid homePageId);
         Task EditCommentAsync(Comment comment);
     }
