@@ -232,16 +232,14 @@ namespace comment.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("FilePath")
+                    b.Property<byte[]>("FileData")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("varbinary(max)");
 
                     b.Property<int>("FileType")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
 
                     b.ToTable("Attachments");
                 });
@@ -252,8 +250,8 @@ namespace comment.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("CommentId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Attachments")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -278,8 +276,6 @@ namespace comment.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
 
                     b.ToTable("Comments");
                 });
@@ -333,29 +329,6 @@ namespace comment.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("comment.Data.Model.Attachment", b =>
-                {
-                    b.HasOne("comment.Data.Model.Comment", null)
-                        .WithMany("Attachments")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("comment.Data.Model.Comment", b =>
-                {
-                    b.HasOne("comment.Data.Model.Comment", null)
-                        .WithMany("Replies")
-                        .HasForeignKey("CommentId");
-                });
-
-            modelBuilder.Entity("comment.Data.Model.Comment", b =>
-                {
-                    b.Navigation("Attachments");
-
-                    b.Navigation("Replies");
                 });
 #pragma warning restore 612, 618
         }

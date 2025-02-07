@@ -9,15 +9,36 @@ namespace comment.Controllers
     public class HomeController : Controller
     {
         private readonly ICommentRepository _comment;
-        public HomeController(ICommentRepository comment)
+        private readonly IAttachmentRepository _attachment;
+        public HomeController(ICommentRepository comment, IAttachmentRepository attachment)
         {
             _comment = comment;
+            _attachment = attachment;
         }
         public async Task<IActionResult> Index()
         {
-            ViewBag.Comment = await _comment.GetAllCommentsAsync();
+            var comments = await _comment.GetAllCommentsAsync();
 
+            // Проверяем, загрузились ли комментарии
+            if (comments == null || !comments.Any())
+            {
+                Console.WriteLine("Комментариев в базе нет!");
+            }
+
+            ViewBag.Comment = comments;
             return View(new RECaptcha());
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetImage(Guid id)
+        {
+            var imageData = await _attachment.GetByIdAsync(id);
+
+            if (imageData == null)
+            {
+                return NotFound(); // Если изображения нет, возвращаем 404
+            }
+
+            return File(imageData.FileData, "image/jpeg"); // Отправляем изображение клиенту
         }
         [HttpPost]
         public JsonResult AjaxMethod(string response)

@@ -28,8 +28,6 @@ namespace comment.Data.Model
 
         public Guid? ParentId { get; set; }
 
-        public List<Comment> Replies { get; set; } = new();
-
-        public List<Attachment> Attachments { get; set; } = new();
+        public List<Guid>? Attachments { get; set; }
     }
 }

@@ -3,6 +3,6 @@
     public enum AttachmentType
     {
         Image,
-        Text
+        File
     }
 }

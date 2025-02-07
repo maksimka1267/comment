@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Graph.Models;
 
+
 namespace comment.Data.Model
 {
     public class Attachment
@@ -13,11 +14,12 @@ namespace comment.Data.Model
         public Guid CommentId { get; set; }
 
         [Required]
-        public string FilePath { get; set; }
+        public byte[] FileData { get; set; }
 
         [Required]
-        public Microsoft.Graph.Models.AttachmentType FileType { get; set; }
+        public AttachmentType FileType { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
+

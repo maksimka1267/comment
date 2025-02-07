@@ -36,7 +36,7 @@ namespace comment.Repository
             }
         }
 
-        public async Task EditCommentAsync(Comment comment)
+        public async Task UpdateCommentAsync(Comment comment)
         {
             try
             {
@@ -51,8 +51,11 @@ namespace comment.Repository
 
         public async Task<List<Comment>> GetAllCommentsAsync()
         {
-            return await _context.Comments.ToListAsync();
+            return await _context.Comments
+                .OrderByDescending(c => c.CreatedAt) // Последние комментарии первыми
+                .ToListAsync();
         }
+
 
         public async Task<IQueryable<Comment>> GetAllCommentsByHomePageAsync(Guid homePageId)
         {
