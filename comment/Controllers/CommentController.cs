@@ -4,6 +4,7 @@ using comment.Repository;
 using comment.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory; // Подключаем кэш
 
 namespace comment.Controllers
 {
@@ -13,13 +14,16 @@ namespace comment.Controllers
         private readonly ICommentRepository _comment;
         private readonly IAttachmentRepository _attachment;
         private readonly IQueueService<CommentQueueItem> _commentQueue;
+        private readonly IMemoryCache _cache; // Добавляем кэш
 
-        public CommentController(ICommentRepository commentRepository, IAttachmentRepository attachment, IQueueService<CommentQueueItem> commentQueue)
+        public CommentController(ICommentRepository commentRepository, IAttachmentRepository attachment, IQueueService<CommentQueueItem> commentQueue, IMemoryCache cache)
         {
             _comment = commentRepository;
             _attachment = attachment;
             _commentQueue = commentQueue; // Инъекция очереди
+            _cache = cache; // Инъекция кэша
         }
+
         [HttpPost("add")]
         public async Task<IActionResult> Add(Comment model)
         {
@@ -31,10 +35,13 @@ namespace comment.Controllers
             model.CreatedAt = DateTime.UtcNow;
             await _comment.MakeCommentAsync(model);
 
+            // Удаляем кэш
+            var cacheKey = "all_comments";
+            _cache.Remove(cacheKey);
+
             // Возвращаем данные нового комментария
             return Json(new { success = true, comment = model });
         }
-
 
         [HttpPost("AddWithFile")]
         public IActionResult AddWithFile(Comment model, List<IFormFile> Files)
@@ -45,7 +52,7 @@ namespace comment.Controllers
             model.Id = Guid.NewGuid();
             model.CreatedAt = DateTime.UtcNow;
 
-            // Собираем файлы в массив байтов сразу
+            // Собираем файлы в массив байтов
             var fileDataList = new List<(byte[] FileData, string FileName)>();
 
             foreach (var file in Files)
@@ -61,12 +68,15 @@ namespace comment.Controllers
             _commentQueue.Enqueue(new CommentQueueItem
             {
                 Comment = model,
-                Files = fileDataList // Передаем массив байтов вместо IFormFile
+                Files = fileDataList
             });
+
+            // Удаляем кэш
+            var cacheKey = "all_comments";
+            _cache.Remove(cacheKey);
 
             return RedirectToAction("Index", "Home");
         }
-
 
         [HttpPost("reply")]
         public async Task<IActionResult> Reply(Comment model)
@@ -87,6 +97,10 @@ namespace comment.Controllers
 
             model.CreatedAt = DateTime.UtcNow;
             await _comment.MakeCommentAsync(model);
+
+            // Удаляем кэш
+            var cacheKey = "all_comments";
+            _cache.Remove(cacheKey);
 
             return RedirectToAction("Index", "Home");
         }
@@ -109,7 +123,7 @@ namespace comment.Controllers
             model.Id = Guid.NewGuid();
             model.CreatedAt = DateTime.UtcNow;
 
-            // Собираем файлы в массив байтов сразу
+            // Собираем файлы в массив байтов
             var fileDataList = new List<(byte[] FileData, string FileName)>();
 
             foreach (var file in Files)
@@ -125,12 +139,14 @@ namespace comment.Controllers
             _commentQueue.Enqueue(new CommentQueueItem
             {
                 Comment = model,
-                Files = fileDataList // Передаем массив байтов вместо IFormFile
+                Files = fileDataList
             });
 
+            // Удаляем кэш
+            var cacheKey = "all_comments";
+            _cache.Remove(cacheKey);
 
             return RedirectToAction("Index", "Home");
         }
-
     }
 }

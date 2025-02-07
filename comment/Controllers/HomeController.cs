@@ -20,12 +20,17 @@ namespace comment.Controllers
         }
         public async Task<IActionResult> Index()
         {
-            var comments = await _comment.GetAllCommentsAsync();
-
-            // Проверяем, загрузились ли комментарии
-            if (comments == null || !comments.Any())
+            var cacheKey = "all_comments";
+            if (!_cache.TryGetValue(cacheKey, out List<Comment> comments))
             {
-                Console.WriteLine("Комментариев в базе нет!");
+                // Данные не найдены в кэше, делаем запрос к базе
+                comments = await _comment.GetAllCommentsAsync();
+
+                // Устанавливаем кэш на 1 минуту
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(1));
+
+                _cache.Set(cacheKey, comments, cacheEntryOptions);
             }
 
             ViewBag.Comment = comments;
