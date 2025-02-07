@@ -1,7 +1,10 @@
 ﻿using comment.Data;
 using comment.Interface;
 using comment.Repository;
+using comment.Services.Interface; // Не забудьте подключить правильные пространства имен
+using comment.Services; // Пространство имен для QueueService и фоновым задачам
 using Microsoft.EntityFrameworkCore;
+using comment.Data.Model;
 
 var builder = WebApplication.CreateBuilder(args);
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -15,6 +18,12 @@ configuration.AddCommandLine(args);
 // Регистрация зависимостей
 builder.Services.AddTransient<ICommentRepository, CommentRepository>();
 builder.Services.AddTransient<IAttachmentRepository, AttachmentRepository>();
+
+// Регистрация QueueService для CommentQueueItem
+builder.Services.AddSingleton<IQueueService<CommentQueueItem>, QueueService<CommentQueueItem>>();
+
+// Регистрация фонового процесса для обработки очереди
+builder.Services.AddHostedService<CommentQueueProcessor>();
 
 // Добавляем поддержку базы данных
 builder.Services.AddDbContext<AppDbContext>(options =>

@@ -2,6 +2,7 @@
 using comment.Data.Model;
 using comment.Interface;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 
 namespace comment.Controllers
@@ -10,10 +11,12 @@ namespace comment.Controllers
     {
         private readonly ICommentRepository _comment;
         private readonly IAttachmentRepository _attachment;
-        public HomeController(ICommentRepository comment, IAttachmentRepository attachment)
+        private readonly IMemoryCache _cache;
+        public HomeController(ICommentRepository comment, IAttachmentRepository attachment, IMemoryCache cache)
         {
             _comment = comment;
             _attachment = attachment;
+            _cache = cache;
         }
         public async Task<IActionResult> Index()
         {

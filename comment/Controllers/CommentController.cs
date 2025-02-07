@@ -1,6 +1,7 @@
 ﻿using comment.Data.Model;
 using comment.Interface;
 using comment.Repository;
+using comment.Services.Interface;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,74 +12,32 @@ namespace comment.Controllers
     {
         private readonly ICommentRepository _comment;
         private readonly IAttachmentRepository _attachment;
-        public CommentController(ICommentRepository commentRepository, IAttachmentRepository attachment)
+        private readonly IQueueService<CommentQueueItem> _commentQueue;
+
+        public CommentController(ICommentRepository commentRepository, IAttachmentRepository attachment, IQueueService<CommentQueueItem> commentQueue)
         {
             _comment = commentRepository;
             _attachment = attachment;
+            _commentQueue = commentQueue; // Инъекция очереди
         }
-
-        // Вспомогательный метод для обработки файлов
-        private async Task<List<Attachment>> ProcessFiles(List<IFormFile> files, Guid commentId)
-        {
-            var attachments = new List<Attachment>();
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".txt" };
-
-            foreach (var file in files)
-            {
-                if (file != null)
-                {
-                    var extension = Path.GetExtension(file.FileName).ToLower();
-
-                    if (!allowedExtensions.Contains(extension) || file.Length > 100 * 1024)
-                    {
-                        throw new InvalidOperationException("Недопустимый файл.");
-                    }
-
-                    // Читаем содержимое файла в массив байтов
-                    byte[] fileBytes;
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        await file.CopyToAsync(memoryStream);
-                        fileBytes = memoryStream.ToArray();
-                    }
-
-                    // Присваиваем правильный тип (Image или File)
-                    AttachmentType fileType = (extension == ".txt") ? AttachmentType.File : AttachmentType.Image;
-
-                    var attachment = new Attachment
-                    {
-                        Id = Guid.NewGuid(),
-                        CommentId = commentId,
-                        FileData = fileBytes, // Сохраняем данные в виде массива байтов
-                        FileType = fileType
-                    };
-
-                    attachments.Add(attachment);
-
-                    // Сохраняем attachment в базе данных
-                    await _attachment.AddAsync(attachment);
-                }
-            }
-
-            return attachments;
-        }
-
         [HttpPost("add")]
         public async Task<IActionResult> Add(Comment model)
         {
             if (!ModelState.IsValid)
             {
-                return View("Index", model);
+                return Json(new { success = false, message = "Ошибка валидации" });
             }
 
             model.CreatedAt = DateTime.UtcNow;
             await _comment.MakeCommentAsync(model);
 
-            return RedirectToAction("Index", "Home");
+            // Возвращаем данные нового комментария
+            return Json(new { success = true, comment = model });
         }
 
+
         [HttpPost("AddWithFile")]
-        public async Task<IActionResult> AddWithFile(Comment model, List<IFormFile> Files)
+        public IActionResult AddWithFile(Comment model, List<IFormFile> Files)
         {
             if (!ModelState.IsValid)
                 return RedirectToAction("Index", "Home");
@@ -86,16 +45,27 @@ namespace comment.Controllers
             model.Id = Guid.NewGuid();
             model.CreatedAt = DateTime.UtcNow;
 
-            await _comment.MakeCommentAsync(model);
+            // Собираем файлы в массив байтов сразу
+            var fileDataList = new List<(byte[] FileData, string FileName)>();
 
-            var attachments = await ProcessFiles(Files, model.Id);
+            foreach (var file in Files)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    file.CopyTo(memoryStream);
+                    fileDataList.Add((memoryStream.ToArray(), file.FileName));
+                }
+            }
 
-            model.Attachments = attachments.Select(a => a.Id).ToList();
-            await _comment.UpdateCommentAsync(model);
+            // Передаем CommentQueueItem в очередь
+            _commentQueue.Enqueue(new CommentQueueItem
+            {
+                Comment = model,
+                Files = fileDataList // Передаем массив байтов вместо IFormFile
+            });
 
             return RedirectToAction("Index", "Home");
         }
-
 
 
         [HttpPost("reply")]
@@ -122,14 +92,14 @@ namespace comment.Controllers
         }
 
         [HttpPost("ReplyWithFile")]
-        public async Task<IActionResult> ReplyWithFile(Comment model, List<IFormFile> Files)
+        public IActionResult ReplyWithFile(Comment model, List<IFormFile> Files)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction("Index","Home");
+                return RedirectToAction("Index", "Home");
 
             if (model.ParentId != null)
             {
-                var parentComment = await _comment.GetCommentByIdAsync(model.ParentId.Value);
+                var parentComment = _comment.GetCommentByIdAsync(model.ParentId.Value).Result;
                 if (parentComment == null)
                 {
                     return NotFound("Родительский комментарий не найден.");
@@ -139,14 +109,28 @@ namespace comment.Controllers
             model.Id = Guid.NewGuid();
             model.CreatedAt = DateTime.UtcNow;
 
-            await _comment.MakeCommentAsync(model);
+            // Собираем файлы в массив байтов сразу
+            var fileDataList = new List<(byte[] FileData, string FileName)>();
 
-            var attachments = await ProcessFiles(Files, model.Id);
+            foreach (var file in Files)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    file.CopyTo(memoryStream);
+                    fileDataList.Add((memoryStream.ToArray(), file.FileName));
+                }
+            }
 
-            model.Attachments = attachments.Select(a => a.Id).ToList();
-            await _comment.UpdateCommentAsync(model);
+            // Передаем CommentQueueItem в очередь
+            _commentQueue.Enqueue(new CommentQueueItem
+            {
+                Comment = model,
+                Files = fileDataList // Передаем массив байтов вместо IFormFile
+            });
 
-            return RedirectToAction("Index","Home");
+
+            return RedirectToAction("Index", "Home");
         }
+
     }
 }

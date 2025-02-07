@@ -32,9 +32,9 @@
     </style>
 </head>
 <body>
-<div class="container mt-4">
-    <h2>Комментарии</h2>
-     <button class="btn btn-success mt-3" id="show-comment-form">Создать комментарий</button>
+    <div class="container mt-4">
+        <h2>Комментарии</h2>
+        <button class="btn btn-success mt-3" id="show-comment-form">Создать комментарий</button>
         <div id="comment-form-container" class="hidden">
             <h3>Добавить комментарий</h3>
             <form id="comment-form" method="post" enctype="multipart/form-data">
@@ -63,142 +63,126 @@
             </form>
         </div>
 
-    @if (comments != null && comments.Any())
-    {
-        <div id="comments-container">
+        @if (comments != null && comments.Any())
+        {
+            <div id="comments-container">
                 @foreach (var comment in comments.Where(c => c.ParentId == null))
                 {
                     <div class="comment-box">
                         <strong>@comment.UserName</strong> <small>@comment.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
                         <p>@Html.Raw(comment.Text)</p>
 
-                        @if (comment.Attachments.Any())
+                        @if (comments?.Any() == true)
                         {
-                            <p>Прикрепленные файлы:</p>
-                            @foreach (var file in comment.Attachments)
+                            @if (comment.Attachments != null && comment.Attachments.Any())
                             {
-                                <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
-                            }
-                        }
-
-                        <button class="btn btn-sm btn-primary reply-btn" data-id="@comment.Id">Ответить</button>
-                        <div class="reply hidden" id="reply-form-@comment.Id"></div>
-
-                        @if (comments.Any(c => c.ParentId == comment.Id))
-                        {
-                            <div class="reply">
-                                @foreach (var reply in comments.Where(c => c.ParentId == comment.Id))
+                                <p>Прикрепленные файлы:</p>
+                                @foreach (var file in comment.Attachments)
                                 {
-                                    <div class="comment-box">
-                                        <strong>@reply.UserName</strong> <small>@reply.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
-                                        <p>@Html.Raw(reply.Text)</p>
-
-                                        @if (reply.Attachments.Any())
-                                        {
-                                            <p>Прикрепленные файлы:</p>
-                                            @foreach (var file in reply.Attachments)
-                                            {
-                                                <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
-                                            }
-                                        }
-                                    </div>
+                                    <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
                                 }
-                            </div>
+                            }
+
+                            <button class="btn btn-sm btn-primary reply-btn" data-id="@comment.Id">Ответить</button>
+                            <div class="reply hidden" id="reply-form-@comment.Id"></div>
+
+                            @if (comments.Any(c => c.ParentId == comment.Id))
+                            {
+                                <div class="reply">
+                                    @foreach (var reply in comments.Where(c => c.ParentId == comment.Id))
+                                    {
+                                        <div class="comment-box">
+                                            <strong>@reply.UserName</strong> <small>@reply.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                                            <p>@Html.Raw(reply.Text)</p>
+
+                                            @if (reply.Attachments != null && reply.Attachments.Any())
+                                            {
+                                                <p>Прикрепленные файлы:</p>
+                                                @foreach (var file in reply.Attachments)
+                                                {
+                                                    <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
                         }
                     </div>
                 }
 
-        </div>
-    }
-    else
-    {
-        <p>Комментариев пока нет.</p>
-    }
-</div>
+            </div>
+        }
+        else
+        {
+            <p>Комментариев пока нет.</p>
+        }
+    </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const commentFormContainer = document.getElementById("comment-form-container");
-        const showCommentFormBtn = document.getElementById("show-comment-form");
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const commentFormContainer = document.getElementById("comment-form-container");
+            const showCommentFormBtn = document.getElementById("show-comment-form");
 
-        showCommentFormBtn.addEventListener("click", function () {
-            commentFormContainer.classList.toggle("hidden");
-            commentFormContainer.scrollIntoView({ behavior: 'smooth' });
-        });
+            showCommentFormBtn.addEventListener("click", function () {
+                commentFormContainer.classList.toggle("hidden");
+                commentFormContainer.scrollIntoView({ behavior: 'smooth' });
+            });
 
-        document.querySelectorAll(".reply-btn").forEach(btn => {
-            btn.addEventListener("click", function () {
-                let commentId = this.getAttribute("data-id");
-                let replyFormContainer = document.getElementById("reply-form-" + commentId);
+            document.querySelectorAll(".reply-btn").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    let commentId = this.getAttribute("data-id");
+                    let replyFormContainer = document.getElementById("reply-form-" + commentId);
 
-                if (!replyFormContainer.innerHTML) {
-                    replyFormContainer.innerHTML = `
-                        <h5>Ответ на комментарий</h5>
-                        <form method="post" action="/Comment/Reply" enctype="multipart/form-data">
-                            <input type="hidden" name="ParentId" value="${commentId}">
-                            <div class="mb-3">
-                                <label for="userName" class="form-label">Имя</label>
-                                <input type="text" class="form-control" name="UserName" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email</label>
-                                <input type="email" class="form-control" name="Email" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="text" class="form-label">Комментарий</label>
-                                <textarea class="form-control" name="Text" required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="files" class="form-label">Прикрепить файлы</label>
-                                <input type="file" class="form-control" name="Files" id="files" multiple>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-success">Ответить</button>
-                        </form>`;
+                    if (!replyFormContainer.innerHTML) {
+                        replyFormContainer.innerHTML = `
+                            <h5>Ответ на комментарий</h5>
+                            <form method="post" action="/Comment/Reply" enctype="multipart/form-data">
+                                <input type="hidden" name="ParentId" value="${commentId}">
+                                <div class="mb-3">
+                                    <label for="userName" class="form-label">Имя</label>
+                                    <input type="text" class="form-control" name="UserName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="Email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="text" class="form-label">Комментарий</label>
+                                    <textarea class="form-control" name="Text" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="files" class="form-label">Прикрепить файлы</label>
+                                    <input type="file" class="form-control" name="Files" id="files" multiple>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success">Ответить</button>
+                            </form>`;
+                    }
+
+                    replyFormContainer.classList.toggle("hidden");
+                });
+            });
+
+            // Обработчик отправки основного комментария
+            document.getElementById("comment-form").addEventListener("submit", async function (event) {
+                event.preventDefault();
+
+                let formData = new FormData(this);
+                let files = formData.getAll("Files");
+                const allowedTypes = ["image/jpeg", "image/png", "image/gif", "text/plain"];
+                let hasValidFiles = false;
+
+                // Проверяем файлы на допустимые типы
+                for (let file of files) {
+                    if (file.size > 0 && allowedTypes.includes(file.type)) {
+                        hasValidFiles = true;
+                        break;
+                    }
                 }
 
-                replyFormContainer.classList.toggle("hidden");
-            });
-        });
-
-        // Обработчик отправки основного комментария
-        document.getElementById("comment-form").addEventListener("submit", async function (event) {
-            event.preventDefault();
-
-            let formData = new FormData(this);
-            let files = formData.getAll("Files");
-
-            // Проверяем, если есть файлы
-            if (files.length > 0) {
-                // Если есть файлы, отправляем на AddWithFile
-                this.action = "/Comment/AddWithFile";
-            } else {
-                // Если файлов нет, отправляем на Add
-                this.action = "/Comment/Add";
-            }
-
-            let response = await fetch(this.action, {
-                method: "POST",
-                body: formData
-            });
-
-            if (response.ok) {
-                location.reload(); // Обновляем страницу
-                window.scrollTo({ top: 0, behavior: 'smooth' }); // Прокручиваем страницу наверх
-            } else {
-                alert(`Ошибка при добавлении комментария! Статус: ${response.status}`);
-            }
-        });
-
-        // Обработчик отправки ответа на комментарий
-        document.addEventListener("submit", async function (event) {
-            if (event.target.closest("form") && event.target.closest("form").action.includes("/Comment/Reply")) {
-                event.preventDefault();
-                
-                let formData = new FormData(event.target);
-                let files = formData.getAll("Files");
-
-                let actionUrl = files.length > 0 ? "/Comment/ReplyWithFile" : "/Comment/Reply";
-                event.target.action = actionUrl;
+                // Определяем, какой метод использовать
+                let actionUrl = hasValidFiles ? "/Comment/AddWithFile" : "/Comment/Add";
+                this.action = actionUrl;
 
                 let response = await fetch(actionUrl, {
                     method: "POST",
@@ -209,11 +193,45 @@
                     location.reload(); // Обновляем страницу
                     window.scrollTo({ top: 0, behavior: 'smooth' }); // Прокручиваем страницу наверх
                 } else {
-                    alert(`Ошибка при добавлении ответа! Статус: ${response.status}`);
+                    alert(`Ошибка при добавлении комментария! Статус: ${response.status}`);
                 }
-            }
+            });
+
+            // Обработчик отправки ответа на комментарий
+            document.addEventListener("submit", async function (event) {
+                if (event.target.closest("form") && event.target.closest("form").action.includes("/Comment/Reply")) {
+                    event.preventDefault();
+
+                    let formData = new FormData(event.target);
+                    let files = formData.getAll("Files");
+                    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "text/plain"];
+                    let hasValidFiles = false;
+
+                    // Проверка файлов
+                    for (let file of files) {
+                        if (file.size > 0 && allowedTypes.includes(file.type)) {
+                            hasValidFiles = true;
+                            break;
+                        }
+                    }
+
+                    let actionUrl = hasValidFiles ? "/Comment/ReplyWithFile" : "/Comment/Reply";
+                    event.target.action = actionUrl;
+
+                    let response = await fetch(actionUrl, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        location.reload(); // Обновляем страницу
+                        window.scrollTo({ top: 0, behavior: 'smooth' }); // Прокручиваем страницу наверх
+                    } else {
+                        alert(`Ошибка при добавлении ответа! Статус: ${response.status}`);
+                    }
+                }
+            });
         });
-    });
-</script>
+    </script>
 </body>
 </html>
