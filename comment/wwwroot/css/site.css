@@ -7,7 +7,24 @@ html {
     font-size: 16px;
   }
 }
+.comment-box {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
 
+.reply {
+    margin-left: 30px;
+}
+
+.hidden {
+    display: none;
+}
+
+html {
+    scroll-behavior: smooth;
+}
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
@@ -19,4 +36,30 @@ html {
 
 body {
   margin-bottom: 60px;
+}
+.notification {
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px;
+    margin: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    animation: slideIn 1s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }

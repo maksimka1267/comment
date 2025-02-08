@@ -1,0 +1,110 @@
+﻿@using comment.Data.Model
+@model comment.Data.Model.RECaptcha
+@{
+    ViewData["Title"] = "Home page";
+    var comments = ViewBag.Comment as List<Comment>;
+}
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комментарии</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/site.css" />
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
+    <script src="~/js/site.js"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Комментарии</h2>
+        <button class="btn btn-success mt-3" id="show-comment-form">Создать комментарий</button>
+        <div id="comment-form-container" class="hidden">
+            <h3>Добавить комментарий</h3>
+            <form id="comment-form" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="userName" class="form-label">Имя</label>
+                    <input type="text" class="form-control" name="UserName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" name="Email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="homePage" class="form-label">Домашняя страница (опционально)</label>
+                    <input type="url" class="form-control" name="HomePage">
+                </div>
+                <div class="mb-3">
+                    <label for="text" class="form-label">Комментарий</label>
+                    <textarea class="form-control" id="text" name="Text" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="files" class="form-label">Прикрепить файлы</label>
+                    <input type="file" class="form-control" name="Files" id="files" multiple>
+                    <small>Допустимые форматы: JPG, GIF, PNG, TXT (≤ 100 КБ)</small>
+                </div>
+                <div class="mb-3">
+                    <label for="recaptcha" class="form-label">Пожалуйста, подтвердите, что вы не робот</label>
+                    <div id="dvCaptcha"></div>
+                    <span id="rfvCaptcha" class="error" style="display:none">Captcha validation is required.</span>
+                </div>
+                <button type="submit" class="btn btn-success">Отправить</button>
+            </form>
+        </div>
+
+        @if (comments != null && comments.Any())
+        {
+            <div id="comments-container">
+                @foreach (var comment in comments.Where(c => c.ParentId == null))
+                {
+                    <div class="comment-box">
+                        <strong>@comment.UserName</strong> <small>@comment.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                        <p>@Html.Raw(comment.Text)</p>
+
+                        @if (comments?.Any() == true)
+                        {
+                            @if (comment.Attachments != null && comment.Attachments.Any())
+                            {
+                                <p>Прикрепленные файлы:</p>
+                                @foreach (var file in comment.Attachments)
+                                {
+                                    <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
+                                }
+                            }
+
+                            <button class="btn btn-sm btn-primary reply-btn" data-id="@comment.Id">Ответить</button>
+                            <div class="reply hidden" id="reply-form-@comment.Id"></div>
+
+                            @if (comments.Any(c => c.ParentId == comment.Id))
+                            {
+                                <div class="reply">
+                                    @foreach (var reply in comments.Where(c => c.ParentId == comment.Id))
+                                    {
+                                        <div class="comment-box">
+                                            <strong>@reply.UserName</strong> <small>@reply.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                                            <p>@Html.Raw(reply.Text)</p>
+
+                                            @if (reply.Attachments != null && reply.Attachments.Any())
+                                            {
+                                                <p>Прикрепленные файлы:</p>
+                                                @foreach (var file in reply.Attachments)
+                                                {
+                                                    <img src="@Url.Action("GetImage", "Home", new { id = file})" width="150" alt="Image attachment">
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+            </div>
+        }
+        else
+        {
+            <p>Комментариев пока нет.</p>
+        }
+    </div>
+</body>
+</html>
