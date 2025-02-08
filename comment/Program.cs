@@ -5,7 +5,7 @@ using comment.Services.Interface; // Не забудьте подключить 
 using comment.Services; // Пространство имен для QueueService и фоновым задачам
 using Microsoft.EntityFrameworkCore;
 using comment.Data.Model;
-
+using MediatR;
 var builder = WebApplication.CreateBuilder(args);
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -24,6 +24,8 @@ builder.Services.AddSingleton<IQueueService<CommentQueueItem>, QueueService<Comm
 
 // Регистрация фонового процесса для обработки очереди
 builder.Services.AddHostedService<CommentQueueProcessor>();
+// Добавляем MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 // Добавляем поддержку базы данных
 builder.Services.AddDbContext<AppDbContext>(options =>

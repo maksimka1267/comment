@@ -1,7 +1,9 @@
 ﻿using comment.Data.Model;
+using comment.Events;
 using comment.Interface;
 using comment.Repository;
 using comment.Services.Interface;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory; // Подключаем кэш
@@ -14,14 +16,20 @@ namespace comment.Controllers
         private readonly ICommentRepository _comment;
         private readonly IAttachmentRepository _attachment;
         private readonly IQueueService<CommentQueueItem> _commentQueue;
-        private readonly IMemoryCache _cache; // Добавляем кэш
+        private readonly IMemoryCache _cache;
+        private readonly IMediator _mediator;
 
-        public CommentController(ICommentRepository commentRepository, IAttachmentRepository attachment, IQueueService<CommentQueueItem> commentQueue, IMemoryCache cache)
+        public CommentController(ICommentRepository commentRepository,
+                                IAttachmentRepository attachment,
+                                IQueueService<CommentQueueItem> commentQueue,
+                                IMemoryCache cache,
+                                IMediator mediator)
         {
             _comment = commentRepository;
             _attachment = attachment;
             _commentQueue = commentQueue; // Инъекция очереди
             _cache = cache; // Инъекция кэша
+            _mediator=mediator;
         }
 
         [HttpPost("add")]
@@ -38,6 +46,9 @@ namespace comment.Controllers
             // Удаляем кэш
             var cacheKey = "all_comments";
             _cache.Remove(cacheKey);
+
+            // Публикуем событие с помощью MediatR
+            await _mediator.Publish(new CommentAddedEvent(model.Id, model.UserName, model.Email, model.CreatedAt));
 
             // Возвращаем данные нового комментария
             return Json(new { success = true, comment = model });
