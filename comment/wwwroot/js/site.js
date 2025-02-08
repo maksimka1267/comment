@@ -119,3 +119,34 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+const socket = new WebSocket("ws://localhost:7099/ws");  // Указываем URL WebSocket сервера
+
+socket.onopen = () => {
+    console.log("WebSocket подключен.");
+};
+
+socket.onmessage = (event) => {
+    const message = event.data;
+    console.log("Получено сообщение: " + message);
+
+    // Показываем уведомление о новом комментарии
+    const notificationElement = document.createElement('div');
+    notificationElement.classList.add('notification');
+    notificationElement.textContent = message;
+
+    // Выводим уведомление на страницу
+    document.body.appendChild(notificationElement);
+
+    // Можно сделать стилизацию для уведомлений
+    setTimeout(() => {
+        notificationElement.remove(); // Удаляем уведомление через 5 секунд
+    }, 5000);
+};
+
+socket.onerror = (error) => {
+    console.log("Ошибка WebSocket: ", error);
+};
+
+socket.onclose = () => {
+    console.log("WebSocket закрыт.");
+};

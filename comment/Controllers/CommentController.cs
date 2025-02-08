@@ -4,6 +4,7 @@ using comment.Interface;
 using comment.Repository;
 using comment.Services.Interface;
 using MediatR;
+using Microsoft.AspNet.SignalR.WebSockets;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory; // Подключаем кэш
@@ -18,18 +19,21 @@ namespace comment.Controllers
         private readonly IQueueService<CommentQueueItem> _commentQueue;
         private readonly IMemoryCache _cache;
         private readonly IMediator _mediator;
+        private readonly WebSocketHandler _webSocketHandler;
 
         public CommentController(ICommentRepository commentRepository,
                                 IAttachmentRepository attachment,
                                 IQueueService<CommentQueueItem> commentQueue,
                                 IMemoryCache cache,
-                                IMediator mediator)
+                                IMediator mediator,
+                                WebSocketHandler webSocketHandler)
         {
             _comment = commentRepository;
             _attachment = attachment;
             _commentQueue = commentQueue; // Инъекция очереди
             _cache = cache; // Инъекция кэша
-            _mediator=mediator;
+            _mediator = mediator;
+            _webSocketHandler = webSocketHandler;
         }
 
         [HttpPost("add")]
@@ -47,8 +51,8 @@ namespace comment.Controllers
             var cacheKey = "all_comments";
             _cache.Remove(cacheKey);
 
-            // Публикуем событие с помощью MediatR
-            await _mediator.Publish(new CommentAddedEvent(model.Id, model.UserName, model.Email, model.CreatedAt));
+            // Отправляем обновление через WebSocket
+            await _webSocketHandler.SendToAllAsync("Новый комментарий добавлен!");
 
             // Возвращаем данные нового комментария
             return Json(new { success = true, comment = model });

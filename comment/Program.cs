@@ -1,11 +1,15 @@
-﻿using comment.Data;
+﻿using comment.Data.Model;
+using comment.Data;
 using comment.Interface;
 using comment.Repository;
-using comment.Services.Interface; // Не забудьте подключить правильные пространства имен
-using comment.Services; // Пространство имен для QueueService и фоновым задачам
+using comment.Services.Interface;
+using comment.Services;
 using Microsoft.EntityFrameworkCore;
-using comment.Data.Model;
-using MediatR;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http;
+
 var builder = WebApplication.CreateBuilder(args);
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -24,17 +28,20 @@ builder.Services.AddSingleton<IQueueService<CommentQueueItem>, QueueService<Comm
 
 // Регистрация фонового процесса для обработки очереди
 builder.Services.AddHostedService<CommentQueueProcessor>();
+
 // Добавляем MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 // Добавляем поддержку базы данных
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("AppDbConnectionString")),
-    ServiceLifetime.Scoped);
+    options.UseSqlServer(configuration.GetConnectionString("AppDbConnectionString")));
 
 // Добавляем поддержку Razor Pages и контроллеров с представлениями
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+// Регистрируем сервис для WebSocket
+builder.Services.AddSingleton<WebSocketHandler>();
 
 var app = builder.Build();
 
@@ -47,12 +54,26 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
-// Настраиваем маршрутизацию
+// Обработчик WebSocket
+app.UseWebSockets();
+
+// Подключаем обработчик WebSocket для пути /ws
+app.Map("/ws", (HttpContext context, WebSocketHandler webSocketHandler) =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        webSocketHandler.HandleConnections(context);  // Передаем контекст в обработчик
+    }
+    else
+    {
+        context.Response.StatusCode = 400;  // Возвращаем ошибку, если запрос не WebSocket
+    }
+});
+
+// Настроим маршруты для контроллеров и Razor Pages
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
